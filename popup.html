@@ -171,6 +171,22 @@
             line-height: 1.3;
         }
         
+        .ai-section-group {
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            border-left: 3px solid #9b59b6;
+        }
+        
+        .ai-section-group h5 {
+            margin: 0 0 10px 0;
+            color: #9b59b6;
+            font-size: 13px;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
         .loading {
             text-align: center;
             color: #ffd700;
@@ -298,6 +314,39 @@
             color: #e74c3c;
             font-weight: bold;
         }
+        .cart-item-price {
+            font-size: 12px;
+            color: #00b894;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .cart-item-original-price {
+            font-size: 11px;
+            color: #e74c3c;
+            text-decoration: line-through;
+            margin-bottom: 3px;
+        }
+        
+        .cart-item-discounts {
+            font-size: 11px;
+            color: #f39c12;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .cart-item-brand {
+            font-size: 11px;
+            color: #9b59b6;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .cart-item-category {
+            font-size: 11px;
+            color: #3498db;
+            margin-bottom: 3px;
+        }
     </style>
 </head>
 <body>
@@ -321,18 +370,15 @@
     </div>
     
     <div class="ai-section">
-        <h3>🤖 Configuración de IA</h3>
+        <h3>🤖 Procesamiento con IA</h3>
         <div class="ai-config">
             <label for="apiKeyInput">API Key de OpenRouter:</label>
             <input type="password" id="apiKeyInput" placeholder="Ingresa tu API key de OpenRouter">
-            
             <label for="modelSelect">Modelo de IA:</label>
             <select id="modelSelect">
-                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
-                <option value="openai/gpt-4o">GPT-4o</option>
+                <option value="mistralai/mistral-small-3.2-24b-instruct:free">Mistral Small 3.2 (Gratis)</option>
                 <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B</option>
+                <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
                 <option value="google/gemini-pro">Gemini Pro</option>
             </select>
         </div>
@@ -340,6 +386,12 @@
         <div id="aiResults" class="ai-results hidden">
             <h4>📊 Resultados del análisis de IA</h4>
             <div id="aiResultsContent"></div>
+        </div>
+        
+        <!-- Sección expandible para información detallada -->
+        <div id="aiDetailedResults" class="ai-results hidden">
+            <h4>🔍 Información Detallada</h4>
+            <div id="aiDetailedContent"></div>
         </div>
     </div>
     
