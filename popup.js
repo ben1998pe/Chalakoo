@@ -1,16 +1,26 @@
 document.addEventListener('DOMContentLoaded', function() {
     const getInfoBtn = document.getElementById('getInfoBtn');
+    const processWithAIBtn = document.getElementById('processWithAIBtn');
     const infoContainer = document.getElementById('infoContainer');
     const pageTitle = document.getElementById('pageTitle');
     const pageUrl = document.getElementById('pageUrl');
     const saveToCartBtn = document.getElementById('saveToCartBtn');
     const cartItems = document.getElementById('cartItems');
     const clearCartBtn = document.getElementById('clearCartBtn');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const modelSelect = document.getElementById('modelSelect');
+    const aiResults = document.getElementById('aiResults');
+    const aiResultsContent = document.getElementById('aiResultsContent');
 
     let currentTabInfo = null;
+    let currentProductData = null;
+    let aiService = new AIService();
 
     // Cargar items del carrito al abrir el popup
     loadCartItems();
+    
+    // Cargar configuración guardada
+    loadAIConfig();
 
     getInfoBtn.addEventListener('click', async function() {
         try {
@@ -67,10 +77,123 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Procesar con IA
+    processWithAIBtn.addEventListener('click', async function() {
+        try {
+            if (!aiService.isConfigured()) {
+                showMessage('Por favor, configura tu API key de OpenRouter primero', 'error');
+                return;
+            }
+
+            // Cambiar estado del botón
+            const originalText = processWithAIBtn.textContent;
+            processWithAIBtn.textContent = '🔄 Procesando...';
+            processWithAIBtn.disabled = true;
+
+            // Obtener la pestaña activa
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            
+            if (!tab) {
+                throw new Error('No se pudo obtener la información de la pestaña');
+            }
+
+            // Extraer información del producto usando el content script
+            const productData = await extractProductInfoFromTab(tab.id);
+            currentProductData = productData;
+
+            // Procesar con IA
+            const aiResult = await aiService.processProductInfo(productData);
+            
+            // Mostrar resultados
+            displayAIResults(aiResult);
+            
+            // Restaurar botón
+            processWithAIBtn.textContent = originalText;
+            processWithAIBtn.disabled = false;
+            
+            showMessage('¡Producto procesado con IA exitosamente!', 'success');
+            
+        } catch (error) {
+            console.error('Error procesando con IA:', error);
+            showMessage(`Error: ${error.message}`, 'error');
+            
+            // Restaurar botón
+            processWithAIBtn.textContent = '🤖 Procesar con IA';
+            processWithAIBtn.disabled = false;
+        }
+    });
+
+    // Extraer información del producto desde la pestaña
+    async function extractProductInfoFromTab(tabId) {
+        return new Promise((resolve, reject) => {
+            chrome.tabs.sendMessage(tabId, { action: 'extractProductInfo' }, (response) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error('No se pudo comunicar con la página. Asegúrate de estar en una página web válida.'));
+                    return;
+                }
+                
+                if (response && response.success) {
+                    resolve(response.data);
+                } else {
+                    reject(new Error(response?.error || 'Error al extraer información del producto'));
+                }
+            });
+        });
+    }
+
+    // Mostrar resultados de IA
+    function displayAIResults(aiResult) {
+        aiResultsContent.innerHTML = `
+            <div class="ai-result-item">
+                <div class="ai-result-label">Nombre del producto:</div>
+                <div class="ai-result-value">${aiResult.productName || 'No determinado'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Precio:</div>
+                <div class="ai-result-value">${aiResult.price || 'No determinado'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Descripción:</div>
+                <div class="ai-result-value">${aiResult.description || 'No disponible'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Categoría:</div>
+                <div class="ai-result-value">${aiResult.category || 'No determinada'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Marca:</div>
+                <div class="ai-result-value">${aiResult.brand || 'No determinada'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Disponibilidad:</div>
+                <div class="ai-result-value">${aiResult.availability || 'No especificada'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Características clave:</div>
+                <div class="ai-result-value">${Array.isArray(aiResult.keyFeatures) ? aiResult.keyFeatures.join(', ') : 'No disponibles'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Valoración:</div>
+                <div class="ai-result-value">${aiResult.rating || 'No disponible'}</div>
+            </div>
+            <div class="ai-result-item">
+                <div class="ai-result-label">Confianza del análisis:</div>
+                <div class="ai-result-value">${aiResult.confidence ? Math.round(aiResult.confidence * 100) + '%' : 'No especificada'}</div>
+            </div>
+        `;
+        
+        aiResults.classList.remove('hidden');
+    }
+
     // Guardar item en el carrito
     saveToCartBtn.addEventListener('click', function() {
         if (currentTabInfo) {
-            saveToCart(currentTabInfo);
+            // Si tenemos datos de IA, usarlos para guardar información más detallada
+            if (currentProductData && currentProductData.aiResult) {
+                saveToCartWithAI(currentProductData);
+            } else {
+                saveToCart(currentTabInfo);
+            }
         } else {
             showMessage('Primero obtén la información de la página', 'error');
         }
@@ -83,6 +206,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Configurar API key cuando cambie
+    apiKeyInput.addEventListener('input', function() {
+        const apiKey = this.value.trim();
+        if (apiKey) {
+            aiService.setApiKey(apiKey);
+            saveAIConfig();
+        }
+    });
+
+    // Configurar modelo cuando cambie
+    modelSelect.addEventListener('change', function() {
+        aiService.setModel(this.value);
+        saveAIConfig();
+    });
+
+    // Función para guardar en el carrito con información de IA
+    async function saveToCartWithAI(productData) {
+        try {
+            const aiResult = productData.aiResult;
+            const newItem = {
+                id: Date.now().toString(),
+                title: aiResult.productName || productData.title,
+                url: productData.url,
+                price: aiResult.price,
+                category: aiResult.category,
+                brand: aiResult.brand,
+                description: aiResult.description,
+                date: new Date().toLocaleString('es-ES'),
+                aiProcessed: true
+            };
+
+            // Obtener items existentes
+            const result = await chrome.storage.local.get(['cartItems']);
+            const existingItems = result.cartItems || [];
+            
+            // Verificar si ya existe un item con la misma URL
+            const existingIndex = existingItems.findIndex(item => item.url === newItem.url);
+            if (existingIndex !== -1) {
+                // Actualizar item existente
+                existingItems[existingIndex] = newItem;
+                showMessage('Item actualizado en el carrito', 'success');
+            } else {
+                // Agregar nuevo item
+                existingItems.push(newItem);
+                showMessage('Item guardado en el carrito', 'success');
+            }
+
+            // Guardar en storage
+            await chrome.storage.local.set({ cartItems: existingItems });
+            
+            // Recargar la lista
+            loadCartItems();
+            
+        } catch (error) {
+            console.error('Error al guardar en el carrito:', error);
+            showMessage('Error al guardar en el carrito', 'error');
+        }
+    }
+
     // Función para guardar en el carrito
     async function saveToCart(itemInfo) {
         try {
@@ -90,7 +272,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 id: Date.now().toString(),
                 title: itemInfo.title,
                 url: itemInfo.url,
-                date: new Date().toLocaleString('es-ES')
+                date: new Date().toLocaleString('es-ES'),
+                aiProcessed: false
             };
 
             // Obtener items existentes
@@ -139,8 +322,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="cart-item" data-id="${item.id}">
                     <button class="cart-item-delete" onclick="deleteCartItem('${item.id}')">×</button>
                     <div class="cart-item-title">${item.title}</div>
+                    ${item.price ? `<div class="cart-item-price">💰 ${item.price}</div>` : ''}
+                    ${item.category ? `<div class="cart-item-category">📂 ${item.category}</div>` : ''}
                     <div class="cart-item-url">${item.url}</div>
                     <div class="cart-item-date">${item.date}</div>
+                    ${item.aiProcessed ? '<div class="ai-badge">🤖 IA</div>' : ''}
                 </div>
             `).join('');
 
@@ -184,21 +370,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para mostrar mensajes
     function showMessage(message, type = 'success') {
         // Remover mensajes existentes
-        const existingMessage = document.querySelector('.success-message');
+        const existingMessage = document.querySelector('.success-message, .error-message');
         if (existingMessage) {
             existingMessage.remove();
         }
 
         // Crear nuevo mensaje
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'success-message';
+        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
         messageDiv.textContent = message;
-        
-        if (type === 'error') {
-            messageDiv.style.background = 'rgba(231, 76, 60, 0.2)';
-            messageDiv.style.borderColor = '#e74c3c';
-            messageDiv.style.color = '#e74c3c';
-        }
 
         // Insertar después del botón de guardar
         saveToCartBtn.parentNode.insertBefore(messageDiv, saveToCartBtn.nextSibling);
@@ -209,6 +389,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 messageDiv.remove();
             }
         }, 3000);
+    }
+
+    // Función para cargar configuración de IA
+    async function loadAIConfig() {
+        try {
+            const result = await chrome.storage.local.get(['aiApiKey', 'aiModel']);
+            if (result.aiApiKey) {
+                apiKeyInput.value = result.aiApiKey;
+                aiService.setApiKey(result.aiApiKey);
+            }
+            if (result.aiModel) {
+                modelSelect.value = result.aiModel;
+                aiService.setModel(result.aiModel);
+            }
+        } catch (error) {
+            console.error('Error cargando configuración de IA:', error);
+        }
+    }
+
+    // Función para guardar configuración de IA
+    async function saveAIConfig() {
+        try {
+            await chrome.storage.local.set({
+                aiApiKey: apiKeyInput.value.trim(),
+                aiModel: modelSelect.value
+            });
+        } catch (error) {
+            console.error('Error guardando configuración de IA:', error);
+        }
     }
 });
 

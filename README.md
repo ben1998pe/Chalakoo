@@ -1,105 +1,160 @@
-# 🦊 Chalakoo Test v2.0 - Extensión de Chrome
+# 🦊 Chalakoo - Chrome Extension
 
-Una extensión de Chrome que permite obtener información de la página web activa y guardar items en un mini-carrito local con persistencia.
+Una extensión de Chrome que permite obtener información de la página web activa y guardar items en un mini-carrito local con persistencia, **ahora potenciada con Inteligencia Artificial**.
 
-## 📋 Características
+## ✨ Características
 
-- **Manifest V3**: Compatible con las últimas versiones de Chrome
-- **Interfaz moderna**: Diseño atractivo con gradientes y efectos visuales
-- **Funcionalidad principal**: Obtiene el título y URL de la pestaña activa
-- **Mini-carrito local**: Guarda, lista y elimina items con persistencia
-- **Sin background scripts**: Solo usa los permisos necesarios
+### 🔍 Extracción de Información
+- **Información básica**: Título y URL de la página activa
+- **Extracción inteligente**: Análisis automático de contenido de productos
+- **Content Script**: Acceso directo al DOM de la página web
+
+### 🤖 Procesamiento con IA (OpenRouter)
+- **Análisis inteligente**: Procesamiento del HTML completo con modelos de IA
+- **Extracción estructurada**: Información del producto organizada y categorizada
+- **Múltiples modelos**: Soporte para Claude, GPT, Llama, Gemini y más
+- **Configuración flexible**: Selección de modelo y API key personalizable
+
+### 🛒 Mini-Carrito Local
+- **Persistencia**: Almacenamiento local con Chrome Storage API
+- **Información enriquecida**: Datos del producto procesados por IA
+- **Gestión completa**: Agregar, eliminar y limpiar items
+- **Historial**: Ordenamiento por fecha de captura
 
 ## 🚀 Instalación
 
-### Opción 1: Instalación desde archivos (Recomendado para desarrollo)
-
-1. Descarga o clona este repositorio en tu computadora
-2. Abre Chrome y ve a `chrome://extensions/`
-3. Activa el "Modo desarrollador" en la esquina superior derecha
-4. Haz clic en "Cargar descomprimida"
-5. Selecciona la carpeta que contiene estos archivos
-6. ¡Listo! La extensión aparecerá en tu barra de herramientas
-
-### Opción 2: Instalación desde Chrome Web Store (Cuando esté disponible)
-
-1. Busca "Chalakoo Test" en la Chrome Web Store
-2. Haz clic en "Agregar a Chrome"
-3. Confirma la instalación
-
-## 📁 Estructura de archivos
-
-```
-chalakoo-test/
-├── manifest.json      # Configuración de la extensión
-├── popup.html        # Interfaz del popup
-├── popup.js          # Lógica de la extensión
-├── icon.png          # Icono de la extensión
-└── README.md         # Este archivo
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/ben1998pe/Chalakoo.git
+cd Chalakoo
 ```
 
-## 🎯 Uso
+### 2. Instalar en Chrome
+1. Abrir Chrome y navegar a `chrome://extensions/`
+2. Activar el "Modo desarrollador"
+3. Hacer clic en "Cargar extensión sin empaquetar"
+4. Seleccionar la carpeta del proyecto
 
-### Funcionalidad principal:
-1. Haz clic en el icono de la extensión en la barra de herramientas
-2. Se abrirá un popup con un botón "Obtener info de la página"
-3. Haz clic en el botón para capturar la información de la pestaña activa
-4. Se mostrará el título y la URL de la página actual
+## ⚙️ Configuración
 
-### Mini-carrito local:
-1. Después de obtener la información de una página, haz clic en "💾 Guardar en carrito"
-2. El item se guardará con título, URL y fecha de guardado
-3. Los items se muestran en la sección "🛒 Mini-carrito local"
-4. Puedes eliminar items individuales con el botón "×" o limpiar todo el carrito
-5. Los datos persisten incluso después de cerrar el navegador
+### API Key de OpenRouter
+1. Obtener una API key en [OpenRouter](https://openrouter.ai/)
+2. Abrir la extensión y pegar la API key en el campo correspondiente
+3. Seleccionar el modelo de IA preferido
 
-## ⚙️ Permisos utilizados
+### Modelos Disponibles
+- **Claude 3.5 Sonnet** (recomendado)
+- **Claude 3 Haiku**
+- **GPT-4o**
+- **GPT-3.5 Turbo**
+- **Llama 3.1 8B**
+- **Gemini Pro**
 
-- **`activeTab`**: Acceso a la pestaña activa cuando se hace clic en la extensión
-- **`scripting`**: Permite ejecutar scripts en la pestaña activa (aunque no se usa en esta versión)
-- **`storage`**: Permite guardar y recuperar datos localmente con persistencia
+## 📱 Uso
 
-## 🔧 Personalización
+### 1. Obtener Información Básica
+- Hacer clic en "📄 Obtener info de la página"
+- La extensión extraerá título y URL de la página activa
 
-Puedes personalizar la extensión editando:
+### 2. Procesar con IA
+- Hacer clic en "🤖 Procesar con IA"
+- La extensión analizará el HTML completo de la página
+- Se mostrarán los resultados estructurados del análisis
 
-- **`popup.html`**: Cambiar el diseño y estructura del popup
-- **`popup.js`**: Modificar la lógica y funcionalidad
-- **`icon.png`**: Reemplazar el icono por uno personalizado
-- **`manifest.json`**: Cambiar nombre, versión, descripción, etc.
+### 3. Guardar en Carrito
+- Hacer clic en "💾 Guardar en carrito"
+- El item se guardará con toda la información extraída
+- Los items procesados por IA incluyen datos enriquecidos
 
-## 🐛 Solución de problemas
+## 🔧 Estructura del Proyecto
 
-### La extensión no aparece
-- Verifica que el "Modo desarrollador" esté activado
-- Asegúrate de que todos los archivos estén en la misma carpeta
-- Revisa la consola de Chrome para errores
+```
+chalakoo/
+├── manifest.json          # Configuración de la extensión
+├── popup.html            # Interfaz principal
+├── popup.js              # Lógica del popup
+├── content.js            # Script de contenido (extracción)
+├── ai-service.js         # Servicio de IA (OpenRouter)
+├── icon.png              # Icono de la extensión
+├── icon.svg              # Icono vectorial
+├── .gitignore            # Archivos a ignorar
+└── README.md             # Documentación
+```
 
-### No se obtiene información
-- Verifica que la página web no esté bloqueando el acceso
-- Asegúrate de que la extensión tenga permisos para la página actual
+## 🌟 Funcionalidades de IA
 
-### Error de permisos
-- Verifica que el `manifest.json` tenga la sintaxis correcta
-- Asegúrate de que solo uses los permisos `activeTab` y `scripting`
+### Extracción Inteligente
+- **Análisis semántico** del contenido HTML
+- **Identificación automática** de productos
+- **Extracción de metadatos** estructurados
+- **Clasificación inteligente** de contenido
 
-## 📝 Notas técnicas
+### Datos Procesados
+- Nombre del producto
+- Precio y disponibilidad
+- Descripción detallada
+- Categoría y marca
+- Características clave
+- Valoraciones y reviews
+- Imágenes principales
+- Nivel de confianza del análisis
 
-- **Manifest V3**: Esta extensión usa la versión más reciente del manifiesto de Chrome
-- **Sin background scripts**: No se ejecuta código en segundo plano
-- **Permisos mínimos**: Solo solicita los permisos absolutamente necesarios
-- **Persistencia local**: Usa `chrome.storage.local` para guardar datos permanentemente
-- **Compatibilidad**: Funciona en Chrome 88+ y navegadores basados en Chromium
+## 🔒 Permisos
+
+La extensión requiere los siguientes permisos:
+- `activeTab`: Acceso a la pestaña activa
+- `scripting`: Ejecución de scripts en páginas
+- `storage`: Almacenamiento local de datos
+- `tabs`: Acceso a información de pestañas
+- `host_permissions`: Acceso a contenido de páginas web
+
+## 🛠️ Desarrollo
+
+### Tecnologías Utilizadas
+- **HTML5**: Estructura de la interfaz
+- **CSS3**: Estilos y animaciones
+- **JavaScript ES6+**: Lógica de la extensión
+- **Chrome Extensions API**: Funcionalidades nativas
+- **OpenRouter API**: Procesamiento con IA
+
+### Personalización
+- Modificar estilos en `popup.html`
+- Ajustar lógica en `popup.js`
+- Personalizar extracción en `content.js`
+- Configurar modelos de IA en `ai-service.js`
+
+## 📊 Características del Carrito
+
+### Información Básica
+- Título del producto
+- URL de la página
+- Fecha de captura
+- Estado de procesamiento
+
+### Información Enriquecida (IA)
+- Precio del producto
+- Categoría
+- Marca
+- Descripción detallada
+- Badge de procesamiento por IA
+
+## 🔮 Futuras Mejoras
+
+- [ ] Exportación de datos (CSV, JSON)
+- [ ] Sincronización en la nube
+- [ ] Análisis de precios históricos
+- [ ] Comparación de productos
+- [ ] Notificaciones de cambios
+- [ ] Integración con más APIs de IA
 
 ## 🤝 Contribuciones
 
-Si quieres contribuir a este proyecto:
-
-1. Haz un fork del repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Haz commit de tus cambios (`git commit -am 'Agregar nueva funcionalidad'`)
-4. Haz push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+Las contribuciones son bienvenidas. Por favor:
+1. Fork el proyecto
+2. Crear una rama para tu feature
+3. Commit tus cambios
+4. Push a la rama
+5. Abrir un Pull Request
 
 ## 📄 Licencia
 
@@ -108,12 +163,11 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ## 🆘 Soporte
 
 Si tienes problemas o preguntas:
-
-1. Revisa la sección de solución de problemas
-2. Busca en los issues del repositorio
-3. Abre un nuevo issue con detalles del problema
+- Abrir un issue en GitHub
+- Revisar la documentación
+- Verificar la configuración de la API key
 
 ---
 
-**Desarrollado con ❤️ para la comunidad de Chrome**
+**Desarrollado con ❤️ para hacer la extracción de información web más inteligente y eficiente.**
 
