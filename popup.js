@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const modelSelect = document.getElementById('modelSelect');
     const aiResults = document.getElementById('aiResults');
     const aiResultsContent = document.getElementById('aiResultsContent');
+    const aiDetailedResults = document.getElementById('aiDetailedResults'); // Added this line
 
     let currentTabInfo = null;
     let currentProductData = null;
@@ -21,6 +22,45 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Cargar configuración guardada
     loadAIConfig();
+
+    // Configurar API key cuando cambie
+    apiKeyInput.addEventListener('input', function() {
+        aiService.setApiKey(this.value);
+        saveAIConfig();
+    });
+
+    // Configurar modelo cuando cambie
+    modelSelect.addEventListener('change', function() {
+        aiService.setModel(this.value);
+        saveAIConfig();
+    });
+
+    async function loadAIConfig() {
+        try {
+            const result = await chrome.storage.local.get(['aiApiKey', 'aiModel']);
+            if (result.aiApiKey) {
+                apiKeyInput.value = result.aiApiKey;
+                aiService.setApiKey(result.aiApiKey);
+            }
+            if (result.aiModel) {
+                modelSelect.value = result.aiModel;
+                aiService.setModel(result.aiModel);
+            }
+        } catch (error) {
+            console.error('Error cargando configuración de IA:', error);
+        }
+    }
+
+    async function saveAIConfig() {
+        try {
+            await chrome.storage.local.set({
+                aiApiKey: apiKeyInput.value,
+                aiModel: modelSelect.value
+            });
+        } catch (error) {
+            console.error('Error guardando configuración de IA:', error);
+        }
+    }
 
     getInfoBtn.addEventListener('click', async function() {
         try {
@@ -143,44 +183,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Mostrar resultados de IA
     function displayAIResults(aiResult) {
+        // Información principal mejorada
         aiResultsContent.innerHTML = `
             <div class="ai-result-item">
                 <div class="ai-result-label">Nombre del producto:</div>
                 <div class="ai-result-value">${aiResult.productName || 'No determinado'}</div>
             </div>
             <div class="ai-result-item">
-                <div class="ai-result-label">Precio:</div>
-                <div class="ai-result-value">${aiResult.price || 'No determinado'}</div>
+                <div class="ai-result-label">Precio actual:</div>
+                <div class="ai-result-value">${aiResult.currentPrice || 'No determinado'}</div>
             </div>
+            ${aiResult.originalPrice && aiResult.originalPrice !== 'No disponible' ? `
             <div class="ai-result-item">
-                <div class="ai-result-label">Descripción:</div>
-                <div class="ai-result-value">${aiResult.description || 'No disponible'}</div>
-            </div>
+                <div class="ai-result-label">Precio original:</div>
+                <div class="ai-result-value">${aiResult.originalPrice}</div>
+            </div>` : ''}
+            ${aiResult.discounts && aiResult.discounts.length > 0 ? `
+            <div class="ai-result-item">
+                <div class="ai-result-label">Descuentos:</div>
+                <div class="ai-result-value">${aiResult.discounts.join(', ')}</div>
+            </div>` : ''}
             <div class="ai-result-item">
                 <div class="ai-result-label">Categoría:</div>
                 <div class="ai-result-value">${aiResult.category || 'No determinada'}</div>
             </div>
             <div class="ai-result-item">
-                <div class="ai-result-label">Marca:</div>
-                <div class="ai-result-value">${aiResult.brand || 'No determinada'}</div>
+                <div class="ai-result-label">Descripción:</div>
+                <div class="ai-result-value">${aiResult.description || 'No disponible'}</div>
             </div>
+            ${aiResult.specifications && aiResult.specifications !== 'No disponible' ? `
+            <div class="ai-result-item">
+                <div class="ai-result-label">Especificaciones:</div>
+                <div class="ai-result-value">${aiResult.specifications}</div>
+            </div>` : ''}
+            ${aiResult.availability && aiResult.availability !== 'No disponible' ? `
             <div class="ai-result-item">
                 <div class="ai-result-label">Disponibilidad:</div>
-                <div class="ai-result-value">${aiResult.availability || 'No especificada'}</div>
-            </div>
+                <div class="ai-result-value">${aiResult.availability}</div>
+            </div>` : ''}
+            ${aiResult.sku && aiResult.sku !== 'No disponible' ? `
             <div class="ai-result-item">
-                <div class="ai-result-label">Características clave:</div>
-                <div class="ai-result-value">${Array.isArray(aiResult.keyFeatures) ? aiResult.keyFeatures.join(', ') : 'No disponibles'}</div>
-            </div>
-            <div class="ai-result-item">
-                <div class="ai-result-label">Valoración:</div>
-                <div class="ai-result-value">${aiResult.rating || 'No disponible'}</div>
-            </div>
-            <div class="ai-result-item">
-                <div class="ai-result-label">Confianza del análisis:</div>
-                <div class="ai-result-value">${aiResult.confidence ? Math.round(aiResult.confidence * 100) + '%' : 'No especificada'}</div>
-            </div>
+                <div class="ai-result-label">SKU:</div>
+                <div class="ai-result-value">${aiResult.sku}</div>
+            </div>` : ''}
         `;
+        
+        // Ocultar la sección detallada ya que no la necesitamos
+        aiDetailedResults.classList.add('hidden');
         
         aiResults.classList.remove('hidden');
     }
@@ -206,21 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Configurar API key cuando cambie
-    apiKeyInput.addEventListener('input', function() {
-        const apiKey = this.value.trim();
-        if (apiKey) {
-            aiService.setApiKey(apiKey);
-            saveAIConfig();
-        }
-    });
-
-    // Configurar modelo cuando cambie
-    modelSelect.addEventListener('change', function() {
-        aiService.setModel(this.value);
-        saveAIConfig();
-    });
-
     // Función para guardar en el carrito con información de IA
     async function saveToCartWithAI(productData) {
         try {
@@ -229,9 +263,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 id: Date.now().toString(),
                 title: aiResult.productName || productData.title,
                 url: productData.url,
-                price: aiResult.price,
+                price: aiResult.currentPrice,
+                originalPrice: aiResult.originalPrice,
+                discounts: aiResult.discounts || [],
                 category: aiResult.category,
-                brand: aiResult.brand,
                 description: aiResult.description,
                 date: new Date().toLocaleString('es-ES'),
                 aiProcessed: true
@@ -323,6 +358,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button class="cart-item-delete" onclick="deleteCartItem('${item.id}')">×</button>
                     <div class="cart-item-title">${item.title}</div>
                     ${item.price ? `<div class="cart-item-price">💰 ${item.price}</div>` : ''}
+                    ${item.originalPrice && item.originalPrice !== 'No disponible' ? `<div class="cart-item-original-price">💸 ${item.originalPrice}</div>` : ''}
+                    ${item.discounts && item.discounts.length > 0 ? `<div class="cart-item-discounts">🎯 ${item.discounts.join(', ')}</div>` : ''}
                     ${item.category ? `<div class="cart-item-category">📂 ${item.category}</div>` : ''}
                     <div class="cart-item-url">${item.url}</div>
                     <div class="cart-item-date">${item.date}</div>
@@ -390,34 +427,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 3000);
     }
-
-    // Función para cargar configuración de IA
-    async function loadAIConfig() {
-        try {
-            const result = await chrome.storage.local.get(['aiApiKey', 'aiModel']);
-            if (result.aiApiKey) {
-                apiKeyInput.value = result.aiApiKey;
-                aiService.setApiKey(result.aiApiKey);
-            }
-            if (result.aiModel) {
-                modelSelect.value = result.aiModel;
-                aiService.setModel(result.aiModel);
-            }
-        } catch (error) {
-            console.error('Error cargando configuración de IA:', error);
-        }
-    }
-
-    // Función para guardar configuración de IA
-    async function saveAIConfig() {
-        try {
-            await chrome.storage.local.set({
-                aiApiKey: apiKeyInput.value.trim(),
-                aiModel: modelSelect.value
-            });
-        } catch (error) {
-            console.error('Error guardando configuración de IA:', error);
-        }
-    }
 });
-
