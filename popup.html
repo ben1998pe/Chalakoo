@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chalakoo Test</title>
+    <style>
+        body {
+            width: 300px;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .info-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .info-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .save-btn {
+            background: linear-gradient(45deg, #00b894, #00a085);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .save-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .cart-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .cart-section h3 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            color: #ffd700;
+            font-size: 16px;
+        }
+        
+        .cart-items {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        
+        .cart-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #00b894;
+            position: relative;
+        }
+        
+        .cart-item-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffd700;
+            word-break: break-all;
+        }
+        
+        .cart-item-url {
+            font-size: 12px;
+            color: #e0e0e0;
+            word-break: break-all;
+            margin-bottom: 5px;
+        }
+        
+        .cart-item-date {
+            font-size: 11px;
+            color: #b0b0b0;
+        }
+        
+        .cart-item-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-item-delete:hover {
+            background: #c0392b;
+            transform: scale(1.1);
+        }
+        
+        .empty-cart {
+            text-align: center;
+            color: #b0b0b0;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .cart-actions {
+            text-align: center;
+        }
+        
+        .clear-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .success-message {
+            background: rgba(0, 184, 148, 0.2);
+            border: 1px solid #00b894;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+            color: #00b894;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🦊 Chalakoo Test v2.0</h1>
+    
+    <button id="getInfoBtn">Obtener info de la página</button>
+    
+    <div id="infoContainer" class="info-container hidden">
+        <div class="info-item">
+            <div class="info-label">Título:</div>
+            <div id="pageTitle" class="info-value"></div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">URL:</div>
+            <div id="pageUrl" class="info-value"></div>
+        </div>
+        <div class="info-item">
+            <button id="saveToCartBtn" class="save-btn">💾 Guardar en carrito</button>
+        </div>
+    </div>
+    
+    <div class="cart-section">
+        <h3>🛒 Mini-carrito local</h3>
+        <div id="cartItems" class="cart-items">
+            <div class="empty-cart">No hay items guardados</div>
+        </div>
+        <div class="cart-actions">
+            <button id="clearCartBtn" class="clear-btn">🗑️ Limpiar carrito</button>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
+
