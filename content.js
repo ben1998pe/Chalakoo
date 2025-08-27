@@ -3,11 +3,15 @@
     'use strict';
 
     // Función para extraer información del producto de la página
-    function extractProductInfo() {
+    async function extractProductInfo() {
+        // Tomar screenshot de la página
+        const screenshot = await takePageScreenshot();
+        
         const pageInfo = {
             url: window.location.href,
             title: document.title,
             html: extractRelevantHTML(), // Nueva función para extraer solo lo relevante
+            screenshot: screenshot, // Screenshot de la página completa
             timestamp: new Date().toISOString()
         };
 
@@ -32,6 +36,64 @@
             ...pageInfo,
             productInfo
         };
+    }
+
+    // Nueva función para tomar screenshot de la página
+    async function takePageScreenshot() {
+        try {
+            // Obtener dimensiones de la página
+            const body = document.body;
+            const html = document.documentElement;
+            const height = Math.max(
+                body.scrollHeight,
+                body.offsetHeight,
+                html.clientHeight,
+                html.scrollHeight,
+                html.offsetHeight
+            );
+            const width = Math.max(
+                body.scrollWidth,
+                body.offsetWidth,
+                html.clientWidth,
+                html.scrollWidth,
+                html.offsetWidth
+            );
+
+            console.log('📸 Chalakoo: Dimensiones de la página:', width, 'x', height);
+
+            // Crear un canvas con las dimensiones de la página
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+
+            // Usar html2canvas si está disponible, sino fallback a método básico
+            if (typeof html2canvas !== 'undefined') {
+                const screenshot = await html2canvas(document.documentElement, {
+                    width: width,
+                    height: height,
+                    scrollX: 0,
+                    scrollY: 0,
+                    useCORS: true,
+                    allowTaint: true
+                });
+                
+                ctx.drawImage(screenshot, 0, 0);
+            } else {
+                // Fallback: crear un screenshot básico del viewport visible
+                console.log('⚠️ html2canvas no disponible, usando fallback básico');
+                return null;
+            }
+
+            // Convertir a base64
+            const screenshotData = canvas.toDataURL('image/png', 0.8);
+            console.log('📸 Chalakoo: Screenshot tomado, tamaño:', screenshotData.length);
+            
+            return screenshotData;
+        } catch (error) {
+            console.error('❌ Error tomando screenshot:', error);
+            return null;
+        }
     }
 
     // Nueva función para extraer solo el HTML relevante del producto
@@ -488,14 +550,17 @@
     // Escuchar mensajes del popup
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'extractProductInfo') {
-            try {
-                const productInfo = extractProductInfo();
-                sendResponse({ success: true, data: productInfo });
-            } catch (error) {
-                sendResponse({ success: false, error: error.message });
-            }
+            // Usar async/await para el screenshot
+            (async () => {
+                try {
+                    const productInfo = await extractProductInfo();
+                    sendResponse({ success: true, data: productInfo });
+                } catch (error) {
+                    sendResponse({ success: false, error: error.message });
+                }
+            })();
+            return true; // Mantener el mensaje activo para respuesta asíncrona
         }
-        return true; // Mantener el mensaje activo para respuesta asíncrona
     });
 
     // Notificar que el content script está cargado

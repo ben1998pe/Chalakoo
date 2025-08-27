@@ -75,11 +75,29 @@ class AIService {
         console.log('🔍 Longitud del HTML:', htmlContent.length);
         console.log('🔍 URL de la página:', productData.url);
         console.log('🔍 Título de la página:', productData.title);
-        
-        return `Analiza esta página web de e-commerce y extrae información DETALLADA y PRECISA del producto PRINCIPAL de la página.
+        console.log('📸 Screenshot disponible:', !!productData.screenshot);
+
+        // Construir el prompt con HTML y screenshot
+        let prompt = `Analiza esta página web de e-commerce y extrae información DETALLADA y PRECISA del producto PRINCIPAL de la página.
 
 HTML DE LA PÁGINA:
-${htmlContent}
+${htmlContent}`;
+
+        // Si hay screenshot, agregarlo al prompt
+        if (productData.screenshot) {
+            prompt += `
+
+📸 SCREENSHOT DE LA PÁGINA COMPLETA:
+[IMAGEN_DE_LA_PAGINA]
+
+IMPORTANTE: El screenshot muestra exactamente lo que ve el usuario. Úsalo para:
+- Identificar precios visibles (€, $, etc.)
+- Ver descuentos y ofertas
+- Confirmar categorías y breadcrumbs
+- Verificar información del producto`;
+        }
+
+        prompt += `
 
 INSTRUCCIONES IMPORTANTES:
 1. **NOMBRE DEL PRODUCTO**: Extrae SOLO el nombre del producto PRINCIPAL que se está mostrando en la página
@@ -102,6 +120,7 @@ INSTRUCCIONES IMPORTANTES:
 - Si hay productos relacionados, IGNÓRALOS para la extracción
 - Busca en TODO el HTML proporcionado
 - Si no encuentras algo, usa "No disponible"
+- Si hay screenshot, úsalo para confirmar información visible
 
 RESPONDE EN JSON:
 {
@@ -115,6 +134,8 @@ RESPONDE EN JSON:
     "availability": "stock del producto PRINCIPAL",
     "sku": "SKU del producto PRINCIPAL"
 }`;
+
+        return prompt;
     }
 
     // Llamar a OpenRouter API
