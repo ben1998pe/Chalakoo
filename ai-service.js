@@ -1,8 +1,8 @@
 // Servicio de IA para procesar información de productos usando OpenRouter
 class AIService {
     constructor() {
-        // API key y modelo hardcodeados para desarrollo
-        this.apiKey = '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';
+        // API key y modelo se configurarán desde la UI
+        this.apiKey = null;
         this.baseUrl = 'https://openrouter.ai/api/v1';
         this.model = 'mistralai/mistral-small-3.2-24b-instruct:free';
     }
