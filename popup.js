@@ -20,9 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar items del carrito al abrir el popup
     loadCartItems();
     
-    // Cargar configuración guardada
-    loadAIConfig();
+    // La configuración de IA está hardcodeada, no necesitamos cargarla
+    // loadAIConfig();
 
+    // La configuración de IA está hardcodeada, no necesitamos estos event listeners
+    /*
     // Configurar API key cuando cambie
     apiKeyInput.addEventListener('input', function() {
         aiService.setApiKey(this.value);
@@ -34,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
         aiService.setModel(this.value);
         saveAIConfig();
     });
+    */
 
     async function loadAIConfig() {
         try {

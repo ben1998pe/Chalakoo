@@ -53,24 +53,58 @@
             relevantHTML += `<h1 class="product-name">${productName.innerHTML}</h1>\n`;
         }
         
-        // 4. Precios - Plaza Vea específico
+        // 4. Precios - Selectores genéricos para e-commerce
         const priceSelectors = [
+            // Selectores genéricos
             '.price, .product-price, [class*="price"], [class*="product-price"]',
-            '.vtex-price, .vtex-product-price',
-            '.price-container, .price-wrapper',
+            '.price-container, .price-wrapper, .price-box',
             '[data-testid*="price"], [data-testid*="Price"]',
             '.price-current, .price-regular, .price-online',
-            '.discount-price, .price-discount'
+            '.discount-price, .price-discount, .price-sale',
+            // Selectores específicos para Temu
+            '[class*="price"], [class*="Price"]',
+            '.current-price, .sale-price, .original-price',
+            // Selectores para precios tachados
+            '.price-old, .price-original, .price-before',
+            'del, s, strike, [style*="text-decoration: line-through"]'
         ];
         
         let priceHTML = '';
         priceSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                if (el.textContent.trim() && !priceHTML.includes(el.textContent.trim())) {
-                    priceHTML += `<div class="price-element">${el.outerHTML}</div>\n`;
-                }
-            });
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    const text = el.textContent.trim();
+                    if (text && text.length > 0 && !priceHTML.includes(text)) {
+                        // Verificar si contiene números y símbolos de moneda
+                        if (/\d+[.,]\d+/.test(text) || /€|\$|£|¥/.test(text)) {
+                            priceHTML += `<div class="price-element">${el.outerHTML}</div>\n`;
+                        }
+                    }
+                });
+            } catch (e) {
+                // Ignorar selectores que fallen
+            }
+        });
+        
+        // Búsqueda adicional por patrones de texto para precios
+        const pricePatterns = [
+            /\d+[.,]\d+\s*€/g,  // 39,98€
+            /€\s*\d+[.,]\d+/g,  // €39,98
+            /\d+[.,]\d+\s*\$/g,  // 39.98$
+            /\$\s*\d+[.,]\d+/g   // $39.98
+        ];
+        
+        const bodyText = document.body.innerText;
+        pricePatterns.forEach(pattern => {
+            const matches = bodyText.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    if (!priceHTML.includes(match)) {
+                        priceHTML += `<div class="price-pattern">Precio encontrado: ${match}</div>\n`;
+                    }
+                });
+            }
         });
         
         if (priceHTML) {
@@ -168,23 +202,53 @@
             relevantHTML += `<div class="sku">${skuHTML}</div>\n`;
         }
         
-        // 9. Categorías y tags - Plaza Vea específico
+        // 9. Categorías y tags - Selectores genéricos para e-commerce
         const categorySelectors = [
+            // Selectores genéricos
             '.categories, .tags, [class*="category"], [class*="tag"]',
-            '.vtex-product-categories, .product-details-categories',
+            '.product-categories, .product-details-categories',
             '.product-tags, .product-labels',
             '[data-testid*="category"], [data-testid*="Category"]',
-            '.product-breadcrumb, .category-path'
+            // Breadcrumbs y navegación
+            '.breadcrumb, .breadcrumbs, [class*="breadcrumb"]',
+            'nav[aria-label*="breadcrumb"], .breadcrumb-container',
+            '.category-path, .product-breadcrumb',
+            // Selectores específicos para Temu
+            '[class*="breadcrumb"], [class*="category"]',
+            '.navigation-path, .product-navigation'
         ];
         
         let categoryHTML = '';
         categorySelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                if (el.textContent.trim() && !categoryHTML.includes(el.textContent.trim())) {
-                    categoryHTML += `<div class="category-element">${el.outerHTML}</div>\n`;
-                }
-            });
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    if (el.textContent.trim() && !categoryHTML.includes(el.textContent.trim())) {
+                        categoryHTML += `<div class="category-element">${el.outerHTML}</div>\n`;
+                    }
+                });
+            } catch (e) {
+                // Ignorar selectores que fallen
+            }
+        });
+        
+        // Búsqueda adicional por patrones de texto para categorías
+        const categoryPatterns = [
+            /Patio[^>]*césped[^>]*jardín/gi,
+            /Cortacésped[^>]*herramientas[^>]*eléctricas/gi,
+            /Recortadoras[^>]*inalámbricas/gi,
+            /Podadoras/gi
+        ];
+        
+        categoryPatterns.forEach(pattern => {
+            const matches = bodyText.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    if (!categoryHTML.includes(match)) {
+                        categoryHTML += `<div class="category-pattern">Categoría encontrada: ${match}</div>\n`;
+                    }
+                });
+            }
         });
         
         if (categoryHTML) {
@@ -218,13 +282,26 @@
     function extractAdditionalInfo() {
         let additionalHTML = '';
         
-        // Buscar precios en el texto visible
+        // Buscar precios en el texto visible (múltiples monedas)
         const pricePatterns = [
+            // Soles (Perú)
             /S\/\s*\d+[.,]\d+/g,  // S/ 319.00
             /\d+[.,]\d+\s*S\//g,  // 319.00 S/
+            // Euros (Europa)
+            /\d+[.,]\d+\s*€/g,    // 39,98€
+            /€\s*\d+[.,]\d+/g,    // €39,98
+            // Dólares (US)
+            /\$\s*\d+[.,]\d+/g,   // $39.98
+            /\d+[.,]\d+\s*\$/g,   // 39.98$
+            // Precios con texto
             /Precio\s+(?:Regular|Online|Tarjeta)[:\s]*S\/\s*\d+[.,]\d+/gi,
+            /Precio\s+(?:Regular|Online|Tarjeta)[:\s]*€\s*\d+[.,]\d+/gi,
+            // Descuentos
             /-\s*\d+%/g,  // -13%, -22%
-            /Descuento[:\s]*\d+%/gi
+            /Descuento[:\s]*\d+%/gi,
+            // PVR (Precio de Venta Recomendado)
+            /PVR[:\s]*€\s*\d+[.,]\d+/gi,
+            /Precio\s+PVR[:\s]*€\s*\d+[.,]\d+/gi
         ];
         
         const bodyText = document.body.innerText;
@@ -239,12 +316,20 @@
             }
         });
         
-        // Buscar categorías en el texto visible
+        // Buscar categorías en el texto visible (múltiples sitios)
         const categoryPatterns = [
+            // Plaza Vea
             /Supermercado[^>]*>([^>]+)/gi,
             /Terraza\s+y\s+Aire\s+Libre/gi,
             /Parrillas?/gi,
-            /Cajas?\s+Chinas?/gi
+            /Cajas?\s+Chinas?/gi,
+            // Temu y sitios de jardinería
+            /Patio[^>]*césped[^>]*jardín/gi,
+            /Cortacésped[^>]*herramientas[^>]*eléctricas/gi,
+            /Recortadoras[^>]*inalámbricas/gi,
+            /Podadoras/gi,
+            // Categorías generales
+            /[A-Z][a-z]+[^>]*>[^>]*[A-Z][a-z]+/gi
         ];
         
         categoryPatterns.forEach(pattern => {
