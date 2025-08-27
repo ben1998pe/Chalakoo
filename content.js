@@ -8,6 +8,7 @@
             url: window.location.href,
             title: document.title,
             html: extractRelevantHTML(), // Nueva función para extraer solo lo relevante
+            screenshot: null, // Screenshot deshabilitado temporalmente
             timestamp: new Date().toISOString()
         };
 
@@ -34,6 +35,64 @@
         };
     }
 
+    // Nueva función para tomar screenshot de la página
+    async function takePageScreenshot() {
+        try {
+            // Obtener dimensiones de la página
+            const body = document.body;
+            const html = document.documentElement;
+            const height = Math.max(
+                body.scrollHeight,
+                body.offsetHeight,
+                html.clientHeight,
+                html.scrollHeight,
+                html.offsetHeight
+            );
+            const width = Math.max(
+                body.scrollWidth,
+                body.offsetWidth,
+                html.clientWidth,
+                html.scrollWidth,
+                html.offsetWidth
+            );
+
+            console.log('📸 Chalakoo: Dimensiones de la página:', width, 'x', height);
+
+            // Crear un canvas con las dimensiones de la página
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+
+            // Usar html2canvas si está disponible, sino fallback a método básico
+            if (typeof html2canvas !== 'undefined') {
+                const screenshot = await html2canvas(document.documentElement, {
+                    width: width,
+                    height: height,
+                    scrollX: 0,
+                    scrollY: 0,
+                    useCORS: true,
+                    allowTaint: true
+                });
+                
+                ctx.drawImage(screenshot, 0, 0);
+            } else {
+                // Fallback: crear un screenshot básico del viewport visible
+                console.log('⚠️ html2canvas no disponible, usando fallback básico');
+                return null;
+            }
+
+            // Convertir a base64
+            const screenshotData = canvas.toDataURL('image/png', 0.8);
+            console.log('📸 Chalakoo: Screenshot tomado, tamaño:', screenshotData.length);
+            
+            return screenshotData;
+        } catch (error) {
+            console.error('❌ Error tomando screenshot:', error);
+            return null;
+        }
+    }
+
     // Nueva función para extraer solo el HTML relevante del producto
     function extractRelevantHTML() {
         let relevantHTML = '';
@@ -53,24 +112,58 @@
             relevantHTML += `<h1 class="product-name">${productName.innerHTML}</h1>\n`;
         }
         
-        // 4. Precios - Plaza Vea específico
+        // 4. Precios - Selectores genéricos para e-commerce
         const priceSelectors = [
+            // Selectores genéricos
             '.price, .product-price, [class*="price"], [class*="product-price"]',
-            '.vtex-price, .vtex-product-price',
-            '.price-container, .price-wrapper',
+            '.price-container, .price-wrapper, .price-box',
             '[data-testid*="price"], [data-testid*="Price"]',
             '.price-current, .price-regular, .price-online',
-            '.discount-price, .price-discount'
+            '.discount-price, .price-discount, .price-sale',
+            // Selectores específicos para Temu
+            '[class*="price"], [class*="Price"]',
+            '.current-price, .sale-price, .original-price',
+            // Selectores para precios tachados
+            '.price-old, .price-original, .price-before',
+            'del, s, strike, [style*="text-decoration: line-through"]'
         ];
         
         let priceHTML = '';
         priceSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                if (el.textContent.trim() && !priceHTML.includes(el.textContent.trim())) {
-                    priceHTML += `<div class="price-element">${el.outerHTML}</div>\n`;
-                }
-            });
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    const text = el.textContent.trim();
+                    if (text && text.length > 0 && !priceHTML.includes(text)) {
+                        // Verificar si contiene números y símbolos de moneda
+                        if (/\d+[.,]\d+/.test(text) || /€|\$|£|¥/.test(text)) {
+                            priceHTML += `<div class="price-element">${el.outerHTML}</div>\n`;
+                        }
+                    }
+                });
+            } catch (e) {
+                // Ignorar selectores que fallen
+            }
+        });
+        
+        // Búsqueda adicional por patrones de texto para precios
+        const pricePatterns = [
+            /\d+[.,]\d+\s*€/g,  // 39,98€
+            /€\s*\d+[.,]\d+/g,  // €39,98
+            /\d+[.,]\d+\s*\$/g,  // 39.98$
+            /\$\s*\d+[.,]\d+/g   // $39.98
+        ];
+        
+        const bodyText = document.body.innerText;
+        pricePatterns.forEach(pattern => {
+            const matches = bodyText.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    if (!priceHTML.includes(match)) {
+                        priceHTML += `<div class="price-pattern">Precio encontrado: ${match}</div>\n`;
+                    }
+                });
+            }
         });
         
         if (priceHTML) {
@@ -168,23 +261,53 @@
             relevantHTML += `<div class="sku">${skuHTML}</div>\n`;
         }
         
-        // 9. Categorías y tags - Plaza Vea específico
+        // 9. Categorías y tags - Selectores genéricos para e-commerce
         const categorySelectors = [
+            // Selectores genéricos
             '.categories, .tags, [class*="category"], [class*="tag"]',
-            '.vtex-product-categories, .product-details-categories',
+            '.product-categories, .product-details-categories',
             '.product-tags, .product-labels',
             '[data-testid*="category"], [data-testid*="Category"]',
-            '.product-breadcrumb, .category-path'
+            // Breadcrumbs y navegación
+            '.breadcrumb, .breadcrumbs, [class*="breadcrumb"]',
+            'nav[aria-label*="breadcrumb"], .breadcrumb-container',
+            '.category-path, .product-breadcrumb',
+            // Selectores específicos para Temu
+            '[class*="breadcrumb"], [class*="category"]',
+            '.navigation-path, .product-navigation'
         ];
         
         let categoryHTML = '';
         categorySelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                if (el.textContent.trim() && !categoryHTML.includes(el.textContent.trim())) {
-                    categoryHTML += `<div class="category-element">${el.outerHTML}</div>\n`;
-                }
-            });
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    if (el.textContent.trim() && !categoryHTML.includes(el.textContent.trim())) {
+                        categoryHTML += `<div class="category-element">${el.outerHTML}</div>\n`;
+                    }
+                });
+            } catch (e) {
+                // Ignorar selectores que fallen
+            }
+        });
+        
+        // Búsqueda adicional por patrones de texto para categorías
+        const categoryPatterns = [
+            /Patio[^>]*césped[^>]*jardín/gi,
+            /Cortacésped[^>]*herramientas[^>]*eléctricas/gi,
+            /Recortadoras[^>]*inalámbricas/gi,
+            /Podadoras/gi
+        ];
+        
+        categoryPatterns.forEach(pattern => {
+            const matches = bodyText.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    if (!categoryHTML.includes(match)) {
+                        categoryHTML += `<div class="category-pattern">Categoría encontrada: ${match}</div>\n`;
+                    }
+                });
+            }
         });
         
         if (categoryHTML) {
@@ -208,23 +331,73 @@
         // 11. ⚠️ ADVERTENCIA sobre productos relacionados
         relevantHTML += `<div class="warning">⚠️ IMPORTANTE: Extraer SOLO información del PRODUCTO PRINCIPAL, NO de productos relacionados</div>\n`;
         
+        // 12. Información de precios extraída del texto visible (fallback)
+        const visiblePriceInfo = extractVisiblePriceInfo();
+        if (visiblePriceInfo) {
+            relevantHTML += `<div class="visible-price-info">${visiblePriceInfo}</div>\n`;
+        }
+        
         console.log('🔍 Chalakoo: HTML relevante extraído:', relevantHTML.substring(0, 500));
         console.log('🔍 Chalakoo: Longitud del HTML relevante:', relevantHTML.length);
         
         return relevantHTML;
     }
 
+    // Función de fallback para extraer precios del texto visible
+    function extractVisiblePriceInfo() {
+        let priceInfo = '';
+        const bodyText = document.body.innerText;
+        
+        // Buscar precios específicos de Temu
+        const temuPricePatterns = [
+            // Precio actual
+            { pattern: /(\d+[.,]\d+)\s*€/g, label: 'Precio actual encontrado' },
+            // Precio original/PVR
+            { pattern: /PVR[:\s]*(\d+[.,]\d+)\s*€/gi, label: 'Precio original (PVR)' },
+            // Ofertas especiales
+            { pattern: /Paga[^€]*(\d+[.,]\d+)\s*€/gi, label: 'Oferta especial' },
+            // Descuentos
+            { pattern: /Descuento[^€]*(\d+[.,]\d+)\s*€/gi, label: 'Descuento' }
+        ];
+        
+        temuPricePatterns.forEach(({ pattern, label }) => {
+            const matches = bodyText.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    if (!priceInfo.includes(match)) {
+                        priceInfo += `<div class="temu-price">${label}: ${match}</div>\n`;
+                    }
+                });
+            }
+        });
+        
+        return priceInfo;
+    }
+
     // Función para extraer información adicional del texto visible
     function extractAdditionalInfo() {
         let additionalHTML = '';
         
-        // Buscar precios en el texto visible
+        // Buscar precios en el texto visible (múltiples monedas)
         const pricePatterns = [
+            // Soles (Perú)
             /S\/\s*\d+[.,]\d+/g,  // S/ 319.00
             /\d+[.,]\d+\s*S\//g,  // 319.00 S/
+            // Euros (Europa)
+            /\d+[.,]\d+\s*€/g,    // 39,98€
+            /€\s*\d+[.,]\d+/g,    // €39,98
+            // Dólares (US)
+            /\$\s*\d+[.,]\d+/g,   // $39.98
+            /\d+[.,]\d+\s*\$/g,   // 39.98$
+            // Precios con texto
             /Precio\s+(?:Regular|Online|Tarjeta)[:\s]*S\/\s*\d+[.,]\d+/gi,
+            /Precio\s+(?:Regular|Online|Tarjeta)[:\s]*€\s*\d+[.,]\d+/gi,
+            // Descuentos
             /-\s*\d+%/g,  // -13%, -22%
-            /Descuento[:\s]*\d+%/gi
+            /Descuento[:\s]*\d+%/gi,
+            // PVR (Precio de Venta Recomendado)
+            /PVR[:\s]*€\s*\d+[.,]\d+/gi,
+            /Precio\s+PVR[:\s]*€\s*\d+[.,]\d+/gi
         ];
         
         const bodyText = document.body.innerText;
@@ -239,12 +412,20 @@
             }
         });
         
-        // Buscar categorías en el texto visible
+        // Buscar categorías en el texto visible (múltiples sitios)
         const categoryPatterns = [
+            // Plaza Vea
             /Supermercado[^>]*>([^>]+)/gi,
             /Terraza\s+y\s+Aire\s+Libre/gi,
             /Parrillas?/gi,
-            /Cajas?\s+Chinas?/gi
+            /Cajas?\s+Chinas?/gi,
+            // Temu y sitios de jardinería
+            /Patio[^>]*césped[^>]*jardín/gi,
+            /Cortacésped[^>]*herramientas[^>]*eléctricas/gi,
+            /Recortadoras[^>]*inalámbricas/gi,
+            /Podadoras/gi,
+            // Categorías generales
+            /[A-Z][a-z]+[^>]*>[^>]*[A-Z][a-z]+/gi
         ];
         
         categoryPatterns.forEach(pattern => {

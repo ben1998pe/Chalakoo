@@ -18,11 +18,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let aiService = new AIService();
 
     // Cargar items del carrito al abrir el popup
-    loadCartItems();
+        loadCartItems();
     
     // Cargar configuración guardada
     loadAIConfig();
-
     // Configurar API key cuando cambie
     apiKeyInput.addEventListener('input', function() {
         aiService.setApiKey(this.value);
