@@ -3,15 +3,12 @@
     'use strict';
 
     // Función para extraer información del producto de la página
-    async function extractProductInfo() {
-        // Tomar screenshot de la página
-        const screenshot = await takePageScreenshot();
-        
+    function extractProductInfo() {
         const pageInfo = {
             url: window.location.href,
             title: document.title,
             html: extractRelevantHTML(), // Nueva función para extraer solo lo relevante
-            screenshot: screenshot, // Screenshot de la página completa
+            screenshot: null, // Screenshot deshabilitado temporalmente
             timestamp: new Date().toISOString()
         };
 
@@ -334,10 +331,47 @@
         // 11. ⚠️ ADVERTENCIA sobre productos relacionados
         relevantHTML += `<div class="warning">⚠️ IMPORTANTE: Extraer SOLO información del PRODUCTO PRINCIPAL, NO de productos relacionados</div>\n`;
         
+        // 12. Información de precios extraída del texto visible (fallback)
+        const visiblePriceInfo = extractVisiblePriceInfo();
+        if (visiblePriceInfo) {
+            relevantHTML += `<div class="visible-price-info">${visiblePriceInfo}</div>\n`;
+        }
+        
         console.log('🔍 Chalakoo: HTML relevante extraído:', relevantHTML.substring(0, 500));
         console.log('🔍 Chalakoo: Longitud del HTML relevante:', relevantHTML.length);
         
         return relevantHTML;
+    }
+
+    // Función de fallback para extraer precios del texto visible
+    function extractVisiblePriceInfo() {
+        let priceInfo = '';
+        const bodyText = document.body.innerText;
+        
+        // Buscar precios específicos de Temu
+        const temuPricePatterns = [
+            // Precio actual
+            { pattern: /(\d+[.,]\d+)\s*€/g, label: 'Precio actual encontrado' },
+            // Precio original/PVR
+            { pattern: /PVR[:\s]*(\d+[.,]\d+)\s*€/gi, label: 'Precio original (PVR)' },
+            // Ofertas especiales
+            { pattern: /Paga[^€]*(\d+[.,]\d+)\s*€/gi, label: 'Oferta especial' },
+            // Descuentos
+            { pattern: /Descuento[^€]*(\d+[.,]\d+)\s*€/gi, label: 'Descuento' }
+        ];
+        
+        temuPricePatterns.forEach(({ pattern, label }) => {
+            const matches = bodyText.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    if (!priceInfo.includes(match)) {
+                        priceInfo += `<div class="temu-price">${label}: ${match}</div>\n`;
+                    }
+                });
+            }
+        });
+        
+        return priceInfo;
     }
 
     // Función para extraer información adicional del texto visible
@@ -550,17 +584,14 @@
     // Escuchar mensajes del popup
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'extractProductInfo') {
-            // Usar async/await para el screenshot
-            (async () => {
-                try {
-                    const productInfo = await extractProductInfo();
-                    sendResponse({ success: true, data: productInfo });
-                } catch (error) {
-                    sendResponse({ success: false, error: error.message });
-                }
-            })();
-            return true; // Mantener el mensaje activo para respuesta asíncrona
+            try {
+                const productInfo = extractProductInfo();
+                sendResponse({ success: true, data: productInfo });
+            } catch (error) {
+                sendResponse({ success: false, error: error.message });
+            }
         }
+        return true; // Mantener el mensaje activo para respuesta asíncrona
     });
 
     // Notificar que el content script está cargado
